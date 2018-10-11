@@ -314,7 +314,8 @@ function __insertSetTable($table_name, $values = [])
     $sql = "INSERT INTO {$table_name} SET";
     $i = 0;
     foreach ($values as $key => $value){
-        $sql .= $i > 1 ? ", " : "" . "{$key} = {$value}";
+        $sql .= $i > 0 ? ", `{$key}` = '{$value}'" : " `{$key}` = '{$value}'";
+
         $i++;
     }
     if ($wpdb->query($sql)){
