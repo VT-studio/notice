@@ -319,7 +319,7 @@ function __insertSetTable($table_name, $values = [])
         $i++;
     }
     if ($wpdb->query($sql)){
-        return true;
+        return $wpdb->insert_id;
     }else{
         return false;
     }
@@ -380,6 +380,8 @@ function __insertDataToTable($table_name, $arr, $date = false)
 
 function __editTable($table_name, $keys = ['id' => 1], $values = [])
 {
+    if (empty($value)) return false;
+    
     global $wpdb;
 
     $sql = "UPDATE {$table_name} SET ";
