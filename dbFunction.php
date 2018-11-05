@@ -380,7 +380,7 @@ function __insertDataToTable($table_name, $arr, $date = false)
 
 function __editTable($table_name, $keys = ['id' => 1], $values = [])
 {
-    if (empty($value)) return false;
+    if (empty($values)) return false;
     
     global $wpdb;
 
