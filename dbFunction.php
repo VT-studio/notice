@@ -269,6 +269,7 @@ function __getResultsArray($table_name, $id_default = [], $filter = [], $order_b
     }
 
     if (!empty($order_by)){
+        $i = 0;
         foreach ($order_by as $key => $value) {
             if ($value == SORT_DESC || $value == SORT_ASC){
                 switch ($value) {
@@ -283,7 +284,8 @@ function __getResultsArray($table_name, $id_default = [], $filter = [], $order_b
                         break;
                 }
             }
-            $sql .= " ORDER BY `{$key}` {$value}";
+            $sql .= $i > 0 ? ", `{$key}` {$value} " : " ORDER BY `{$key}` {$value}";
+            $i++;
         }
     }
 
