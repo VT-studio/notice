@@ -98,12 +98,15 @@ function __getTotalCount($table_name, $count_value = 'id', $filter = [])
         if (!isset($filter['__more']) && !isset($filter['__less'])){
             $i = 0;
             foreach ($filter['__where'] as $key => $value) {
-                $sql .= $i > 0 ? " AND `{$key}` = '{$value}'" : " WHERE `{$key}` = '{$value}'";
-                $i++;
+                if ($value != '') {
+                    $sql .= $i > 0 ? " AND `{$key}` = '{$value}'" : " WHERE `{$key}` = '{$value}'";
+                    $i++;
+                }
             }
         }else{
             foreach ($filter['__where'] as $key => $value) {
-                $sql .= " AND `{$key}` = '{$value}'";
+                if ($value != '')
+                    $sql .= " AND `{$key}` = '{$value}'";
             }
         }
 
@@ -246,7 +249,8 @@ function __getResultsArray($table_name, $id_default = [], $filter = [], $order_b
 
     if (isset($filter['__where'])) {
         foreach ($filter['__where'] as $key => $value) {
-            $sql .= " AND `{$key}` = '{$value}'";
+            if ($value != '')
+                $sql .= " AND `{$key}` = '{$value}'";
         }
     }
 
