@@ -95,21 +95,28 @@ function __getTotalCount($table_name, $count_value = 'id', $filter = [])
     }
 
     if (isset($filter['__where'])) {
+        $i_empty = 0;
         if (!isset($filter['__more']) && !isset($filter['__less'])){
             $i = 0;
             foreach ($filter['__where'] as $key => $value) {
                 if ($value != '') {
                     $sql .= $i > 0 ? " AND `{$key}` = '{$value}'" : " WHERE `{$key}` = '{$value}'";
                     $i++;
+                }else{
+                    $i_empty++;
                 }
             }
         }else{
             foreach ($filter['__where'] as $key => $value) {
-                if ($value != '')
+                if ($value != '') {
                     $sql .= " AND `{$key}` = '{$value}'";
+                }else{
+                    $i_empty++;
+                }
             }
         }
 
+        if ($i_empty == count($filter['__where'])) unset($filter['__where']);
     }
 
 
