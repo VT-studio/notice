@@ -5,6 +5,42 @@
 
 <?php
 /**
+ * @param $table_name
+ * @param $data
+ */
+function __getVerificationTableColumns($table_name, $data)
+{
+    global $wpdb;
+    $sql = "SHOW COLUMNS FROM `{$table_name}`";
+    $results = $wpdb->get_results($sql, ARRAY_A);
+    $table = [];
+    foreach ($results as $result){
+        $table[$result['Field']] = [
+            'Type' => $result['Type'],
+            'Null' => $result['Null'],
+            'Key' => $result['Key'],
+            'Default' => $result['Default'],
+            'Extra' => $result['Extra'],
+        ];
+    }
+
+    $error = [];
+
+    foreach ($data as $key => $search){
+        if (!isset($table[$key])) $error[] = ['key' => "{$key} key does not exist, check the correctness of filling"];
+    }
+
+    if (!empty($error)){
+        echo '<pre>';
+        printf('Error Columns table: ');
+        print_r($error);
+        echo '</pre>';
+        die();
+    }
+
+}
+
+/**
  * @param string $table_name
  * @param array $params
  * @return array
@@ -12,6 +48,9 @@
  */
 function __getResultArray($table_name, $params = ['id' => 1])
 {
+
+    __getVerificationTableColumns($table_name, $params);
+
     global $wpdb;
     $sql = "SELECT * FROM `{$table_name}`";
     $i = 0;
@@ -117,6 +156,7 @@ function __getTotalCount($table_name, $count_value = 'id', $filter = [])
         }
 
         if ($i_empty == count($filter['__where'])) unset($filter['__where']);
+
     }
 
 
@@ -216,7 +256,7 @@ function __getResultsArray($table_name, $id_default = [], $filter = [], $order_b
         $i = 0;
         foreach ($filter['__more'] as $key => $value){
 
-            if ((int)$value) {
+            if ((int)$value || $value == 0) {
                 $sql .= $i > 0 ? " AND `{$key}` > '{$value}'" : " WHERE `{$key}` > '{$value}'";
             }else{
                 return $result['error'] = 'error more value';
@@ -229,7 +269,7 @@ function __getResultsArray($table_name, $id_default = [], $filter = [], $order_b
         if (!isset($filter['__more'])) {
             $i = 0;
             foreach ($filter['__less'] as $key => $value) {
-                if ((int)$value) {
+                if ((int)$value || $value == 0) {
                     $sql .= $i > 0 ? " AND `{$key}` < '{$value}'" : " WHERE `{$key}` < '{$value}'";
                 } else {
                     return $result['error'] = 'error more value';
@@ -238,7 +278,7 @@ function __getResultsArray($table_name, $id_default = [], $filter = [], $order_b
             }
         }else{
             foreach ($filter['__less'] as $key => $value) {
-                if ((int)$value) {
+                if ((int)$value || $value == 0) {
                     $sql .= " WHERE `{$key}` < '{$value}'";
                 } else {
                     return $result['error'] = 'error less value';
@@ -291,7 +331,7 @@ function __getResultsArray($table_name, $id_default = [], $filter = [], $order_b
                         break;
                 }
             }
-            $sql .= $i > 0 ? ", `{$key}` {$value} " : " ORDER BY `{$key}` {$value}";
+            $sql .= $i > 0 ? ", `{$key}` {$value}" : " ORDER BY `{$key}` {$value}";
             $i++;
         }
     }
@@ -322,15 +362,21 @@ function __getResultsArray($table_name, $id_default = [], $filter = [], $order_b
 
 function __insertSetTable($table_name, $values = [])
 {
+    __getVerificationTableColumns($table_name, $values);
     global $wpdb;
 
-    $sql = "INSERT INTO {$table_name} SET";
+    $sql = "INSERT INTO {$table_name} SET ";
     $i = 0;
     foreach ($values as $key => $value){
-        $sql .= $i > 0 ? ", `{$key}` = '{$value}'" : " `{$key}` = '{$value}'";
 
+        if ($value == 'NOW()'){
+            $sql .= $i > 0 ? ", `{$key}` = NOW()" : " `{$key}` = NOW()";
+        }else{
+            $sql .= $i > 0 ? ", `{$key}` = '{$value}'" : "`{$key}` = '{$value}'";
+        }
         $i++;
     }
+
     if ($wpdb->query($sql)){
         return $wpdb->insert_id;
     }else{
@@ -348,6 +394,8 @@ function __insertSetTable($table_name, $values = [])
  */
 function __insertDataToTable($table_name, $arr, $date = false)
 {
+    __getVerificationTableColumns($table_name, $arr);
+
     global $wpdb;
 
     $i = 1;
@@ -374,9 +422,12 @@ function __insertDataToTable($table_name, $arr, $date = false)
     $query = "INSERT INTO {$table_name} {$t} VALUES {$v}";
 
     if (!empty($query))
-        $wpdb->query($query);
+        if ($wpdb->query($query)){
+            return $wpdb->insert_id;
+        }else{
+            return false;
+        }
 
-    return true;
 }
 
 
@@ -394,11 +445,12 @@ function __insertDataToTable($table_name, $arr, $date = false)
 function __editTable($table_name, $keys = ['id' => 1], $values = [])
 {
     if (empty($values)) return false;
-    
+
     global $wpdb;
 
     $sql = "UPDATE {$table_name} SET ";
     $i = 0;
+
     foreach ($values as $key => $value){
 
         if ($value == 'NOW()'){
@@ -409,6 +461,7 @@ function __editTable($table_name, $keys = ['id' => 1], $values = [])
 
         $i++;
     }
+    ;
     $i = 0;
     foreach ($keys as $key => $value){
         $sql .= $i > 0 ? " AND `{$key}` = '{$value}'" : " WHERE `{$key}` = '{$value}'";
@@ -421,6 +474,25 @@ function __editTable($table_name, $keys = ['id' => 1], $values = [])
         return false;
     }
 
+}
+
+
+function __deleteWhere($table_name, $keys = [])
+{
+    if (empty($keys)) return false;
+    global $wpdb;
+    $sql = "DELETE FROM {$table_name} ";
+    $i = 0;
+    foreach ($keys as $key => $value){
+        $sql .= $i > 0 ? " AND `{$key}` = '{$value}'" : " WHERE `{$key}` = '{$value}'";
+        $i++;
+    }
+
+    if ($wpdb->query($sql)){
+        return true;
+    }else{
+        return false;
+    }
 }
 
 /**
