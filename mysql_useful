@@ -10,8 +10,9 @@ config:
         
   restart: /etc/init.d/mysql restart
   "
-  ` /etc/mysql/conf.d/mysql.cnf
-    [mysql]
+  ` /etc/mysql/mysql.conf.d/
+    [mysqld]
+    #low query Vt
     slow_query_log          = /var/log/mysql/mysql-slow.log
-    long_query_time         = 1"
+    long_query_time         = 1
   "
